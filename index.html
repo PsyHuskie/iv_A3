@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+    <title>Display a map on a webpage</title>
+<meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+<script src='https://api.mapbox.com/mapbox-gl-js/v3.0.0-beta.1/mapbox-gl.js'></script>
+<link href='https://api.mapbox.com/mapbox-gl-js/v3.0.0-beta.1/mapbox-gl.css' rel='stylesheet' />
+<style>
+body { margin: 0; padding: 0; }
+#map { position: absolute; top: 0; bottom: 0; width: 100%; }
+</style>
+</head>
+<body>
+<!--style for filter menu-->
+<style>
+    #menu {
+    background: #fff;
+    position: fixed;
+    z-index: 1;
+    top: 10px;
+    left: 10px;
+    border-radius: 3px;
+    width: 120px;
+    border: 1px solid rgba(0, 0, 0, 0.4);
+    font-family: 'Open Sans', sans-serif;
+    }
+        
+    #menu a {
+    font-size: 13px;
+    color: #404040;
+    display: block;
+    margin: 0;
+    padding: 0;
+    padding: 10px;
+    text-decoration: none;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.25);
+    text-align: center;
+    }
+        
+    #menu a:last-child {
+    border: none;
+    }
+        
+    #menu a:hover {
+    background-color: #f8f8f8;
+    color: #404040;
+    }
+        
+    #menu a.active {
+    background-color: #04bade;
+    color: #ffffff;
+    }
+        
+    #menu a.active:hover {
+    background: #037e96;
+    }
+
+
+    /* CSS code to beautify the checkbox */
+    .checkbox-container {
+        background: #3887be;
+        position: absolute;
+        z-index: 1;
+        bottom: 25px;
+        right: 10px;
+    }
+
+    .checkbox-label {
+      margin-left: 8px;
+      font-size: 16px;
+      color: #fff;
+    }
+
+    .custom-checkbox:checked {
+      background-color: #2196F3;
+      border-color: #2196F3;
+    }
+
+    .custom-checkbox:checked::before {
+      content: '\2713';
+      font-size: 12px;
+      color: #fff;
+      position: absolute;
+      top: 1px;
+      left: 4px;
+    }
+
+</style>
+
+<!--style for "Fly to a location based on scroll position"-->>
+<style>
+    #map {
+    position: fixed;
+    width: 70%;
+    }
+    #features {
+    width: 30%;
+    margin-left: 70%;
+    font-family: sans-serif;
+    overflow-y: scroll;
+    background-color: #fafafa;
+    }
+    section {
+    padding: 25px 50px;
+    line-height: 25px;
+    border-bottom: 1px solid #ddd;
+    opacity: 0.25;
+    font-size: 13px;
+    }
+    section.active {
+    opacity: 1;
+    }
+    section:last-child {
+    border-bottom: none;
+    margin-bottom: 800px;
+    }
+</style>
+
+<!--navigation-->
+
+<script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-directions/v4.1.1/mapbox-gl-directions.js"></script>
+<link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-directions/v4.1.1/mapbox-gl-directions.css" type="text/css">
+
+
+
+
+<nav id="menu"></nav>
+<div id="map"></div>
+
+<!--Weather-->
+<script src="https://static.elfsight.com/platform/platform.js" data-use-service-core defer></script>
+<div class="elfsight-app-55606394-46ee-45be-89ea-2bc41a34d527" style="position: fixed; bottom: 30px; right: 15%; transform: translateX(-50%);"></div>
+
+<!--scroll fly to section-->
+<div id="features">  
+    <section id="melbourne_zoo">
+        <h3>Melbourne Zoo</h3>
+        <p>
+            Melbourne Zoo is home to over 320 species of animals from around the world. 
+            It's a great place for families and animal enthusiasts, offering educational programs and close encounters with wildlife.
+        </p>
+    </section>
+    <section id="royal_botanic_gardens">
+        <h3>Royal Botanic Gardens</h3>
+        <p>
+            The Royal Botanic Gardens offer a serene escape from the city's hustle and bustle. These lush gardens house an extensive collection of plants, including rare and exotic species.
+        </p>
+    </section>
+    <section id="eureka_tower">
+        <h3>Eureka Tower</h3>
+        <p>
+            Eureka Tower is one of the tallest buildings in the Southern Hemisphere. Visitors can take the Skydeck elevator to the 88th 
+            floor for panoramic views of Melbourne and beyond.
+        </p>
+    </section>
+    <section id="skyhigh_mount_dadenong">
+        <h3>Gloucester Road</h3>
+        <p>
+            Located in the Dandenong Ranges, SkyHigh offers 
+            panoramic views of Melbourne and the surrounding areas. 
+            It's especially stunning at sunset. 
+            There's also a beautiful garden and a restaurant.
+        </p>
+    </section>
+    <section id="arthurs_seat">
+        <h3>Gloucester Road</h3>
+        <p>
+            Arthurs Seat is a hill on the Mornington Peninsula with a 
+            scenic lookout point. From here, you can enjoy panoramic 
+            views of Port Phillip Bay, the city, and the surrounding coastline.
+        </p>
+    </section>
+</div>
+
+<script>
+const chapters = {
+    'melbourne_zoo': {
+        duration: 6000,
+        center: [144.9513, -37.7857],
+        bearing: 190,
+        zoom: 18,
+        pitch: 0
+    },
+    'royal_botanic_gardens': {
+        duration: 6000,
+        center: [144.9797, -37.8296],
+        bearing: 150,
+        zoom: 15,
+        pitch: 0
+    },
+    'eureka_tower': {
+        bearing: 90,
+        center: [144.9649, -37.8216],
+        zoom: 12.3
+    },
+    'skyhigh_mount_dadenong': {
+        bearing: 45,
+        center: [145.3553, -37.8327],
+        zoom: 15.3,
+        pitch: 20,
+        speed: 0.5
+    },
+    'arthurs_seat': {
+        bearing: 15,
+        center: [144.9534, -38.3516],
+        zoom: 10,
+        pitch: 20,
+        speed: 0.7
+    }
+}
+
+let activeChapterName = 'baker'; // start with this particular scenic view
+function setActiveChapter(chapterName) {
+    if (chapterName === activeChapterName) return;
+    
+    map.flyTo(chapters[chapterName]);
+    
+    document.getElementById(chapterName).classList.add('active');
+    document.getElementById(activeChapterName).classList.remove('active');
+    
+    activeChapterName = chapterName;
+}
+ 
+function isElementOnScreen(id) {
+    const element = document.getElementById(id);
+    const bounds = element.getBoundingClientRect();
+    return bounds.top < window.innerHeight && bounds.bottom > 0;
+}
+ 
+// On every scroll event, check which element is on screen
+window.onscroll = () => {
+    for (const chapterName in chapters) {
+        if (isElementOnScreen(chapterName)) {
+            setActiveChapter(chapterName);
+            break;
+        }
+    }
+};
+</script>
+
+
+
+<script>
+	mapboxgl.accessToken = 'pk.eyJ1IjoibGF3bGlldGxpIiwiYSI6ImNsbmp5OWY4cTFxeDEybG1zczFkdW5xNTMifQ.pPMTLDg5Wf7ZHMmx6BX33g';
+
+    const filterGroup = document.getElementById('filter-group'); // filter
+
+    const map = new mapboxgl.Map({
+        container: 'map', // container ID
+        // Choose from Mapbox's core styles, or make your own style with Mapbox Studio
+        // style: 'mapbox://styles/mapbox/streets-v12', // style URL
+        style: 'mapbox://styles/mapbox/standard-beta', // style URL
+        // style: 'mapbox://styles/mapbox/light-v11', // style URL
+        center: [144.96, -37.812], // starting position [lng, lat]
+        zoom: 12 // starting zoom
+    });
+
+    map.addControl(
+        new MapboxDirections({
+            accessToken: mapboxgl.accessToken
+        }),
+        'bottom-left'
+    );
+    map.addControl(new mapboxgl.ScaleControl());  // Add a scale control to the map
+
+
+
+
+    // datapoint layer + pop up feature
+    map.on('click', 'landmark-layer', (e) => {
+        const coordinates = e.features[0].geometry.coordinates.slice();
+        const theme = e.features[0].properties.theme;
+        const sub_theme = e.features[0].properties.sub_theme;
+        const feature_name = e.features[0].properties.feature_name;
+        // Ensure that if the map is zoomed out such that multiple
+        // copies of the feature are visible, the popup appears
+        // over the copy being pointed to.
+        while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
+            coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
+        }
+        new mapboxgl.Popup()
+            .setLngLat(coordinates)
+            .setHTML(`
+            <h3>${theme}</h3>
+            <p><strong>Type:</strong> ${sub_theme}</p>
+            <p><strong>Address:</strong> ${feature_name}</p>
+            `)
+            .addTo(map);
+    });
+    map.on('mouseenter', 'landmark-layer', () => {
+        map.getCanvas().style.cursor = 'pointer';
+    });
+    map.on('mouseleave', 'landmark-layer', () => {
+        map.getCanvas().style.cursor = '';
+    });
+
+    
+    // datapoint layer + pop up feature
+    map.on('click', 'restaurant-layer', (e) => {
+    const coordinates = e.features[0].geometry.coordinates.slice();
+    const trading_name = e.features[0].properties.trading_name;
+    const building_address = e.features[0].properties.building_address;
+    const seating_type = e.features[0].properties.seating_type;
+
+    // Ensure that if the map is zoomed out such that multiple
+    // copies of the feature are visible, the popup appears
+    // over the copy being pointed to.
+    while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
+        coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
+    }
+    new mapboxgl.Popup()
+        .setLngLat(coordinates)
+        .setHTML(`
+        <h3>${trading_name}</h3>
+        <p><strong>Type:</strong> ${trading_name}</p>
+        <p><strong>Address:</strong> ${building_address}</p>
+        <p><strong>Seating Type:</strong> ${seating_type}</p>
+        `)
+        .addTo(map);
+    });
+    map.on('mouseenter', 'restaurant-layer', () => {
+        map.getCanvas().style.cursor = 'pointer';
+    });
+    map.on('mouseleave', 'restaurant-layer', () => {
+        map.getCanvas().style.cursor = '';
+    });
+
+
+    map.on('load', () => {
+        // landmark
+        map.addSource('landmark', { //load landmark data
+            type: 'geojson',
+            data: 'https://raw.githubusercontent.com/YinhaoDeng/IV_Assignment/main/landmarks-and-places-of-interest-including-schools-theatres-health-services-spor.geojson'
+        });
+        map.loadImage(
+            'https://cdn0.iconfinder.com/data/icons/set-of-ukraine-culture-1/512/monument_landmark_independence_ukraine_statue_kiev_column_city__8-512.png',
+            (error, image) => {
+            if (error) throw error;
+            map.addImage('landmark-icon', image);
+        });
+        map.addLayer({
+            'id': 'landmark-layer',
+            'type': 'symbol',
+            'source': 'landmark',
+            'layout': {
+                'visibility': 'visible', // Make the layer visible by default.
+                'icon-image': 'landmark-icon', // reference the image
+                'icon-size': 0.05
+            }
+        });
+
+        
+        // restaurant
+        map.addSource('restaurant', { //load landmark data
+            type: 'geojson',
+            data: 'https://raw.githubusercontent.com/YinhaoDeng/IV_Assignment/main/restaurant.geojson'
+        });
+        map.loadImage( //insert customised icon HERE!!!!!!!!!!!
+            'https://cdn0.iconfinder.com/data/icons/food-1216/24/knife-fork-nutrition-food-512.png',
+            (error, image) => {
+            if (error) throw error;
+            map.addImage('restaurant-icon', image);
+        });
+        map.addLayer({
+            'id': 'restaurant-layer',
+            'type': 'symbol',
+            'source': 'restaurant',
+            'layout': {
+                'visibility': 'visible', // Make the layer visible by default.
+                'icon-image': 'restaurant-icon', // reference the image
+                'icon-size': 0.04
+            }
+        });
+
+        // // hotel
+        // map.addSource('hotel', { 
+        //     type: 'geojson',
+        //     data: 'https://raw.githubusercontent.com/YinhaoDeng/IV_Assignment/main/Hotels.geojson'
+        // });
+        // map.addLayer({
+        //     'id': 'hotel-layer',
+        //     'type': 'circle',
+        //     'source': 'hotel',
+        //     'paint': {
+        //         'circle-radius': 4,
+        //         'circle-stroke-width': 2,
+        //         'circle-color': 'red',
+        //         'circle-stroke-color': 'white'
+        //     },
+        //     'layout': {
+        //         'visibility': 'visible' // Make the layer visible by default.
+        //     }
+        // });
+        
+         // hotel
+         map.addSource('hotel', { //load hotel data
+            type: 'geojson',
+            data: 'https://raw.githubusercontent.com/YinhaoDeng/IV_Assignment/main/Hotels.geojson'
+        });
+        map.loadImage( //insert customised icon HERE!!!!!!!!!!!
+            'https://cdn1.iconfinder.com/data/icons/real-estate-building-flat-vol-1/104/bed__sleep__interior__furniture__hotel-1024.png',
+            (error, image) => {
+            if (error) throw error;
+            map.addImage('hotel-icon', image);
+        });
+        map.addLayer({
+            'id': 'hotel-layer',
+            'type': 'symbol',
+            'source': 'hotel',
+            'layout': {
+                'visibility': 'visible', // Make the layer visible by default.
+                'icon-image': 'hotel-icon', // reference the image
+                'icon-size': 0.04
+            }
+        });
+        
+
+        // bicycle
+        map.addSource('bicycle-Routes', {
+            type: 'geojson',
+            data: 'https://raw.githubusercontent.com/YinhaoDeng/IV_Assignment/main/Bicycle_Routes.geojson'
+        });
+        map.addLayer({
+            'id': 'bicycle-Routes-layer',
+            'type': 'line',
+            'source': 'bicycle-Routes',
+            'layout': {
+                'visibility': 'visible' // Make the layer visible by default.
+            },
+            'paint': {
+                'line-width': 0.5,
+                'line-color': 'green',
+                'line-opacity': 0.7
+            }
+        });
+
+        // Bus-Metro
+        map.addSource('Bus-Metro-Routes', {
+            type: 'geojson',
+            data: 'https://raw.githubusercontent.com/YinhaoDeng/IV_Assignment/main/Bus_and_Metro_Routes.geojson'
+        });
+        map.addLayer({
+            'id': 'Bus-Metro-Routes-layer',
+            'type': 'line',
+            'source': 'Bus-Metro-Routes',
+            'layout': {
+                'visibility': 'visible' // Make the layer visible by default.
+            },
+            'paint': {
+                'line-width': 1,
+                'line-color': 'orange', 
+                'line-opacity': 0.7
+            }
+        });
+
+        // tram
+        map.addSource('Tram-Routes', {
+            type: 'geojson',
+            data: 'https://raw.githubusercontent.com/YinhaoDeng/IV_Assignment/main/CityCircle_tram.geojson'
+        });
+        map.addLayer({
+            'id': 'Tram-Routes-layer',
+            'type': 'line',
+            'source': 'Tram-Routes',
+            'layout': {
+                'visibility': 'visible' // Make the layer visible by default.
+            },
+            'paint': {
+                'line-width': 0.9,
+                'line-color': 'purple', 
+                'line-opacity': 0.7
+            }
+        });
+
+
+        // Melbourne Municipal Boundary
+        map.addSource('Melbourne-Municipal-Bundary', {
+            type: 'geojson',
+            data: 'https://raw.githubusercontent.com/YinhaoDeng/IV_Assignment/main/Melbourne_Municipal_Boundary.geojson'
+        });
+        map.addLayer({
+            'id': 'Melbourne-Municipal-Bundary-layer',
+            'type': 'fill',
+            'source': 'Melbourne-Municipal-Bundary',
+            'layout': {
+                'visibility': 'visible' // Make the layer visible by default.
+            },
+            'paint': {
+                'fill-color': '#eb34eb', // 
+                'fill-opacity': 0.1
+            }
+        });
+
+        // Melbourne Open Space
+        map.addSource('Open-Space', {
+            type: 'geojson',
+            data: 'https://raw.githubusercontent.com/YinhaoDeng/IV_Assignment/main/Open_Space.geojson'
+        });
+        map.addLayer({
+            'id': 'Open-Space-layer',
+            'type': 'fill',
+            'source': 'Open-Space',
+            'layout': {
+                'visibility': 'visible' // Make the layer visible by default.
+            },
+            'paint': {
+                'fill-color': 'green', // 
+                'fill-opacity': 0.4
+            }
+        });
+
+
+         // Taxi Rank
+         map.addSource('Taxi-Rank', { //load landmark data
+            type: 'geojson',
+            data: 'https://raw.githubusercontent.com/YinhaoDeng/IV_Assignment/main/Taxi_Rank.geojson'
+        });
+        map.loadImage( //insert customised icon HERE!!!!!!!!!!!
+            'https://cdn2.iconfinder.com/data/icons/public-services-filledoutline/64/TAXI-cab-transportation-automobile-car-vehicle-1024.png',
+            (error, image) => {
+            if (error) throw error;
+            map.addImage('Taxi-icon', image);
+        });
+        map.addLayer({
+            'id': 'Taxi-Rank-layer',
+            'type': 'symbol',
+            'source': 'Taxi-Rank',
+            'layout': {
+                'visibility': 'visible', // Make the layer visible by default.
+                'icon-image': 'Taxi-icon', // reference the image
+                'icon-size': 0.02
+            }
+        });
+
+        // Train Station
+        map.addSource('Train-Station', { //load landmark data
+            type: 'geojson',
+            data: 'https://raw.githubusercontent.com/YinhaoDeng/IV_Assignment/main/Train_Stations.geojson'
+        });
+        map.loadImage( //insert customised icon HERE!!!!!!!!!!!
+            'https://cdn3.iconfinder.com/data/icons/travel-and-places-2-1/32/196-1024.png',
+            (error, image) => {
+            if (error) throw error;
+            map.addImage('Train-icon', image);
+        });
+        map.addLayer({
+            'id': 'Train-Station-layer',
+            'type': 'symbol',
+            'source': 'Train-Station',
+            'layout': {
+                'visibility': 'visible', // Make the layer visible by default.
+                'icon-image': 'Train-icon', // reference the image
+                'icon-size': 0.019
+            }
+        });
+
+    });
+
+
+
+    // filter
+    // After the last frame rendered before the map enters an "idle" state.
+    map.on('idle', () => {
+        // Enumerate ids of the layers.
+        const toggleableLayerIds = ['landmark-layer', 'restaurant-layer', 'hotel-layer', 'bicycle-Routes-layer','Bus-Metro-Routes-layer', 'Tram-Routes-layer', 'Melbourne-Municipal-Bundary-layer', 'Open-Space-layer', 'Taxi-Rank-layer', 'Train-Station-layer'];
+        
+        // Set up the corresponding toggle button for each layer.
+        for (const id of toggleableLayerIds) {
+            // Skip layers that already have a button set up.
+            if (document.getElementById(id)) {
+                continue;
+            }
+        
+            // Create a link.
+            const link = document.createElement('a');
+            link.id = id;
+            link.href = '#';
+            link.textContent = id;
+            link.className = 'active';
+            
+            // Show or hide layer when the toggle is clicked.
+            link.onclick = function (e) {
+                const clickedLayer = this.textContent;
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const visibility = map.getLayoutProperty(
+                    clickedLayer,
+                    'visibility'
+                );
+        
+                // Toggle layer visibility by changing the layout object's visibility property.
+                if (visibility === 'visible') {
+                    map.setLayoutProperty(clickedLayer, 'visibility', 'none');
+                    this.className = '';
+                } else {
+                    this.className = 'active';
+                    map.setLayoutProperty(
+                        clickedLayer,
+                        'visibility',
+                        'visible'
+                    );
+                }
+            };
+        
+            const layers = document.getElementById('menu');
+            layers.appendChild(link);
+        }
+    });
+</script>
+
+</body>
+</html>
